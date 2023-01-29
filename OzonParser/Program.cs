@@ -49,7 +49,7 @@ foreach (var key in keys)
         try
         {
             _ = browser.FindElement(By.XPath(
-                    $"/html/body/div[2]/div[{(withFilters ? "3" : "5")}]/div[1]/div/div/div[{index}]/div[1]/a/span/span"),
+                    $"/html/body/div[1]/div/div[1]/div[2]/div[2]/div[2]/div[{(withFilters ? "3" : "5")}]/div[1]/div/div/div[{index}]/div[1]/a/span/span"),
                 5);
         }
         catch
@@ -67,8 +67,9 @@ foreach (var key in keys)
             .SelectSingleNode(
                 $"/html/body/div[1]/div/div[1]/div[2]/div[2]/div[2]/div[{(withFilters ? "3" : "5")}]/div[1]/div/div")
             .ChildNodes
+            .Where(x => x.Name == "div")
             .Where(x => x.GetAttributeValue("style", string.Empty) == String.Empty)
-            .Select(x => x.ChildNodes.FirstOrDefault(x => x.Name == "n")!.GetAttributeValue("a", string.Empty))
+            .Select(x => x.ChildNodes.FirstOrDefault(x => x.Name == "a")!.GetAttributeValue("href", string.Empty))
             .ToList()
     });
 
@@ -103,6 +104,9 @@ using (var progress = new ProgressBar())
         foreach (var link in sortedLinks.Links)
         {
             var browser = new ChromeDriver(service, options);
+            browser.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(30);
+            browser.Navigate().GoToUrl("https://www.ozon.ru" + link);
+
             var title = browser.FindElement(By.ClassName("o6r"), 5)
                 .Text;
 
@@ -116,12 +120,14 @@ using (var progress = new ProgressBar())
             
             string feedbacks = browser.TryFindWhileBy(new[]
             {
+                By.XPath("/html/body/div[1]/div/div[1]/div[3]/div[2]/div/div/div[2]/div/div[1]/div[1]/div/div/div[2]/a/div/div"),
+                By.XPath("/html/body/div[1]/div/div[1]/div[3]/div[3]/div[3]/div/div[8]/div[1]/div/div/div[2]/a/div/div"),
                 By.XPath("/html/body/div[1]/div/div[1]/div[3]/div[3]/div[3]/div/div[7]/div[1]/div/div/div[2]/a/div/div")
             }, 5)!.Text.Split(" ")[0];
 
             string price = browser.TryFindWhileBy(new[]
                 {
-                    By.ClassName("")
+                    By.ClassName("o3p"), By.ClassName("po2")
                 }, 5)!
                 .Text.Split(" ")[0];
 
@@ -138,6 +144,7 @@ using (var progress = new ProgressBar())
 
             browser.Close();
             browser.Quit();
+            progressBarIndex += 1;
             progress.Report((double)progressBarIndex / allProductsCount);
         }
     }
@@ -152,12 +159,18 @@ foreach (var sortedOzonProducts in ozonProducts)
 {
     Worksheet worksheet = new Worksheet(sortedOzonProducts.Key);
     worksheet.Cells[0, 0] = new Cell("Title");
+    worksheet.Cells[0, 1] = new Cell("Brand");
+    worksheet.Cells[0, 2] = new Cell("Id");
+    worksheet.Cells[0, 3] = new Cell("Feedbacks");
     worksheet.Cells[0, 4] = new Cell("Price");
 
     for (int i = 0; i < sortedOzonProducts.OzonProudcts.Count; i++)
     {
         var rowIndex = i + 1;
         worksheet.Cells[rowIndex, 0] = new Cell(sortedOzonProducts.OzonProudcts[i].Title);
+        worksheet.Cells[rowIndex, 1] = new Cell(sortedOzonProducts.OzonProudcts[i].Brand);
+        worksheet.Cells[rowIndex, 2] = new Cell(sortedOzonProducts.OzonProudcts[i].Id);
+        worksheet.Cells[rowIndex, 3] = new Cell(sortedOzonProducts.OzonProudcts[i].Feedbacks);
         worksheet.Cells[rowIndex, 4] = new Cell(sortedOzonProducts.OzonProudcts[i].Price);
     }
 
